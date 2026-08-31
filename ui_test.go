@@ -178,3 +178,19 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+func TestStylesLoadAfterTheSharedSheet(t *testing.T) {
+	// An app's own CSS must come after trackerui's so it can override, and it
+	// must be a <link>, not a <script> -- passing a stylesheet in Scripts is
+	// an easy mistake that silently drops the styles.
+	out := render(t, "home", pageData{Layout: ui.Layout{
+		Styles: []string{"/static/app.css"}}})
+	shared := strings.Index(out, "/static/ui.css")
+	own := strings.Index(out, `<link rel="stylesheet" href="/static/app.css">`)
+	if own < 0 {
+		t.Fatal("app stylesheet not linked")
+	}
+	if shared > own {
+		t.Error("app stylesheet must load after the shared one")
+	}
+}

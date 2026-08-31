@@ -65,6 +65,10 @@ type Layout struct {
 	// Width overrides --container (e.g. "1400px" for a media grid). Empty
 	// keeps the 960px default.
 	Width string
+	// Styles are extra stylesheet URLs, loaded after the shared one so an app
+	// can add what only it needs (a video player, a chart theme) without
+	// forking the shared CSS.
+	Styles []string
 	// Scripts are extra <script src> URLs. Each app embeds and serves its own
 	// JS: the shared package deliberately does not vendor htmx or Chart.js,
 	// so an app that needs neither does not ship them.

@@ -6,6 +6,7 @@
 <title>{{with .Layout.Title}}{{.}} · {{end}}{{.Layout.Brand.Prefix}}{{.Layout.Brand.Suffix}}</title>
 {{fontLink}}
 <link rel="stylesheet" href="{{stylesheet}}">
+{{range .Layout.Styles}}<link rel="stylesheet" href="{{.}}">{{end}}
 {{with .Layout.Width}}<style>:root{--container:{{.}}}</style>{{end}}
 {{range .Layout.Scripts}}<script src="{{.}}" defer></script>{{end}}
 </head>
