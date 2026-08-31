@@ -1,0 +1,332 @@
+/* trackerui — the shared look for the *tracker apps.
+ *
+ * Extracted from gymtracker's web/static/app.css, which foodtracker had
+ * already copied by hand ("Palette + type follow gymtracker's app.css").
+ * That copy-paste is what this file replaces.
+ *
+ * Single fixed dark theme: violet accent on cool near-black. No light mode
+ * and no toggle, matching what both apps already shipped.
+ *
+ * Depth comes from border + surface elevation, NOT shadows. The only shadows
+ * in the original corpus were two button hovers; there is deliberately no
+ * shadow scale here.
+ */
+
+:root {
+  /* Brand: violet accent, athletic dark. */
+  --violet: #8b5cf6;
+  --violet-bright: #a78bfa;
+  --violet-dark: #7c3aed;
+  --violet-soft: rgba(139, 92, 246, 0.14);
+
+  /* Semantic status. Fixed, never themed: green-is-good reads the same in
+   * every app, so these must not drift per-product. */
+  --ok: #22c55e;
+  --ok-soft: rgba(34, 197, 94, 0.14);
+  --warn: #f59e0b;
+  --warn-soft: rgba(245, 158, 11, 0.14);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.13);
+
+  /* Neutral ramp: ground, three surface elevations, one border. */
+  --bg: #0b0b12;
+  --surface: #14141f;
+  --surface-2: #1c1c2b;
+  --surface-3: #24243a;
+  --border: #2a2a3d;
+
+  /* Text ramp: primary, secondary, tertiary. */
+  --text: #f1f1f7;
+  --muted: #9a9ab5;
+  --faint: #6c6c86;
+
+  /* Dense dashboard spacing scale (8/10). */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+
+  /* Per-app: set --container in the page to widen a media grid. */
+  --container: 960px;
+
+  --font-head: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Barlow", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 100% -10%, rgba(139, 92, 246, 0.10), transparent 60%),
+    var(--bg);
+  min-height: 100vh;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ---- Type ------------------------------------------------------------- */
+
+h1, h2, h3 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  margin: 0 0 var(--s3);
+}
+h1 { font-size: 2rem; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.1rem; }
+
+/* Small uppercase section heading. gymtracker called this .sec-label and
+ * tangotracker had promoted the same treatment onto h2 itself; this is the
+ * reconciled single name. */
+.eyebrow {
+  font-family: var(--font-head);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: var(--s6) 0 var(--s2);
+}
+.eyebrow:first-child { margin-top: 0; }
+
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.nums  { font-variant-numeric: tabular-nums; }
+
+/* ---- Shell ------------------------------------------------------------ */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--s6);
+  padding: var(--s3) var(--s5);
+  background: rgba(11, 11, 18, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { font-family: var(--font-head); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.02em; font-size: 1.05rem; }
+.brand .accent { color: var(--violet-bright); }
+
+.topbar nav { display: flex; gap: var(--s2); flex-wrap: nowrap;
+  overflow-x: auto; scrollbar-width: none; }
+.topbar nav::-webkit-scrollbar { display: none; }
+.topbar nav a {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: var(--s1) var(--s2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: color 160ms ease, background 160ms ease;
+}
+.topbar nav a:hover,
+.topbar nav a[aria-current="page"] { color: var(--text); background: var(--surface-2); }
+
+/* Right-hand slot: user menu, live counters, whatever the app needs. */
+.topbar .slot { margin-left: auto; display: flex; align-items: center;
+  gap: var(--s4); font-size: 0.8rem; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+
+.container { max-width: var(--container); margin: 0 auto;
+  padding: var(--s6) var(--s5) 96px; }
+
+/* ---- Surfaces --------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--s4) var(--s5);
+  margin-bottom: var(--s4);
+}
+
+/* Interactive card: no inner padding, the content supplies it. */
+.tile {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 160ms ease;
+}
+.tile:hover { border-color: var(--violet); }
+
+/* Accent-flagged block. Modifiers recolour the flag by meaning. */
+.block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--violet);
+  border-radius: var(--radius);
+  padding: var(--s4) var(--s5);
+  margin-bottom: var(--s4);
+}
+.block.ok     { border-left-color: var(--ok); }
+.block.warn   { border-left-color: var(--warn); }
+.block.danger { border-left-color: var(--danger); }
+.block.idle   { border-left-color: var(--faint); }
+
+.grid { display: grid; gap: var(--s3);
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); }
+
+.row-between { display: flex; align-items: center;
+  justify-content: space-between; gap: var(--s3); }
+
+/* ---- Stat tile -------------------------------------------------------- */
+
+.stat { background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: var(--s3); }
+.stat .v { font-family: var(--font-head); font-size: 1.5rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 0.78rem; color: var(--muted); }
+
+/* ---- Badges and tags -------------------------------------------------- */
+
+/* The house formula: solid text colour over the same hue at ~13% alpha. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  background: var(--surface-3);
+  color: var(--muted);
+}
+.badge.accent { background: var(--violet-soft); color: var(--violet-bright); }
+.badge.ok     { background: var(--ok-soft);     color: var(--ok); }
+.badge.warn   { background: var(--warn-soft);   color: var(--warn); }
+.badge.danger { background: var(--danger-soft); color: var(--danger); }
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-head);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px var(--s2);
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--muted);
+  transition: color 140ms ease, background 140ms ease;
+}
+a.tag:hover { color: var(--violet-bright); background: var(--violet-soft); }
+.tag.accent { background: var(--violet-soft); color: var(--violet-bright); }
+
+/* ---- Buttons ---------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s3) var(--s5);
+  min-height: 44px;                  /* touch target */
+  background: var(--violet);
+  color: #fff;
+  border: 1px solid var(--violet);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 160ms ease, transform 120ms ease, box-shadow 160ms ease;
+}
+.btn:hover { background: var(--violet-dark);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.35); }
+.btn:active { transform: translateY(1px); }
+
+.btn-ghost { background: transparent; color: var(--violet-bright);
+  border-color: var(--border); box-shadow: none; }
+.btn-ghost:hover { background: var(--surface-2); box-shadow: none; }
+
+.btn-sm { min-height: 32px; padding: var(--s1) var(--s3);
+  font-size: 0.8rem; font-family: var(--font-body); text-transform: none; }
+
+.btn-del { background: transparent; border: 1px solid var(--border);
+  color: var(--faint); border-radius: var(--radius-sm); min-height: 36px;
+  padding: var(--s1) var(--s3); cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease; }
+.btn-del:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ---- Forms ------------------------------------------------------------ */
+
+input[type="number"], input[type="text"], input[type="date"],
+input[type="search"], input[type="email"], select, textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: var(--s2) var(--s3);
+  min-height: 44px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 1px;
+  border-color: var(--violet);
+}
+
+/* ---- Tables ----------------------------------------------------------- */
+
+.tablewrap { overflow-x: auto; }
+.tablewrap table { min-width: 520px; }
+
+table { width: 100%; border-collapse: collapse;
+  font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--border); }
+th { color: var(--faint); font-family: var(--font-head); font-weight: 600;
+  font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+td.n, th.n { text-align: right; }
+tbody tr:last-child td { border-bottom: none; }
+
+/* ---- Empty state ------------------------------------------------------ */
+
+.empty { color: var(--muted); font-size: 0.9rem; padding: var(--s8) 0; }
+
+/* ---- Motion ----------------------------------------------------------- */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card, .block, .tile {
+  animation: rise 320ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.grid > :nth-child(2) { animation-delay: 40ms; }
+.grid > :nth-child(3) { animation-delay: 80ms; }
+.grid > :nth-child(4) { animation-delay: 120ms; }
+.grid > :nth-child(5) { animation-delay: 160ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+@media (max-width: 640px) {
+  .container { padding: var(--s4) var(--s3) 80px; }
+  h1 { font-size: 1.6rem; }
+  .topbar { gap: var(--s3); padding: var(--s2) var(--s3); }
+}

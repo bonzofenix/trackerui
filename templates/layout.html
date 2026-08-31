@@ -1,0 +1,25 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{with .Layout.Title}}{{.}} · {{end}}{{.Layout.Brand.Prefix}}{{.Layout.Brand.Suffix}}</title>
+{{fontLink}}
+<link rel="stylesheet" href="{{stylesheet}}">
+{{with .Layout.Width}}<style>:root{--container:{{.}}}</style>{{end}}
+{{range .Layout.Scripts}}<script src="{{.}}" defer></script>{{end}}
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{or .Layout.Brand.Href "/"}}"
+    >{{.Layout.Brand.Prefix}}<span class="accent">{{.Layout.Brand.Suffix}}</span></a>
+  <nav>
+    {{range .Layout.Nav}}
+    <a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a>
+    {{end}}
+  </nav>
+  {{block "slot" .}}{{end}}
+</header>
+<main class="container">{{template "content" .}}</main>
+</body>
+</html>{{end}}
