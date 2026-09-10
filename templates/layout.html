@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The palette is a single fixed dark theme, so this is a statement of
+     fact rather than a preference: it tells the browser to draw its own
+     chrome -- scrollbars, <select> drop-downs, date pickers, form
+     controls -- from the dark set. Without it those render light on a
+     dark page, which is most visible on Windows. */}}
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0b12">
 <title>{{with .Layout.Title}}{{.}} · {{end}}{{.Layout.Brand.Prefix}}{{.Layout.Brand.Suffix}}</title>
 {{fontLink}}
 <link rel="stylesheet" href="{{stylesheet}}">
@@ -11,6 +18,11 @@
 {{range .Layout.Scripts}}<script src="{{.}}" defer></script>{{end}}
 </head>
 <body>
+{{/* First tab stop on every page. The top bar holds the brand, the nav,
+     and whatever the app puts in its slot, so without this a keyboard
+     reader walks all of it before reaching the content -- on a page of
+     filter chips, dozens of stops. Visible only when focused. */}}
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar">
   <a class="brand" href="{{or .Layout.Brand.Href "/"}}"
     >{{.Layout.Brand.Prefix}}<span class="accent">{{.Layout.Brand.Suffix}}</span></a>
@@ -21,6 +33,6 @@
   </nav>
   {{block "slot" .}}{{end}}
 </header>
-<main class="container">{{template "content" .}}</main>
+<main id="main" class="container" tabindex="-1">{{template "content" .}}</main>
 </body>
 </html>{{end}}

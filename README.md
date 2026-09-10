@@ -65,6 +65,30 @@ set would let the last file win and every page would render identically.
 
 Badges follow one formula: solid text colour over the same hue at ~13% alpha.
 
+## What the layout reserves
+
+Two names are load-bearing, and a page that reuses either breaks something
+silently rather than visibly.
+
+`id="main"` — the layout puts it on `<main>` as the skip link's target. A
+content block that declares its own gives the document two, and the fragment
+resolves to whichever comes first, dropping the reader inside the content
+instead of at the top of it. Nothing reports this.
+
+`.skip-link` — the first focusable element on every page.
+
+The layout also sets `scroll-padding-top: 4.5rem` on `<html>`, so that jumps to
+a fragment clear the sticky top bar. An app with a taller bar should override
+it; one that removes the bar entirely can set it to `0`.
+
+## Overriding
+
+`Layout.Styles` loads after the shared sheet, so an app's own rules win **at
+equal specificity**. They do not win automatically: a shared rule written as a
+type selector (`button:focus-visible`, (0,2,1)) outranks an app's bare class
+(`.heart:focus-visible`, (0,2,0)) regardless of load order. When overriding
+something the shared sheet styles by element, match or beat its specificity.
+
 ## JavaScript
 
 None is vendored. gymtracker needs htmx, foodtracker needs Chart.js,

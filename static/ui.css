@@ -13,6 +13,11 @@
  */
 
 :root {
+  /* Fixed dark. Browser-drawn chrome -- scrollbars, <select> option
+   * lists, date pickers, spinners -- follows this, and renders light
+   * against the dark page without it. */
+  color-scheme: dark;
+
   /* Brand: violet accent, athletic dark. */
   --violet: #8b5cf6;
   --violet-bright: #a78bfa;
@@ -55,6 +60,13 @@
 }
 
 * { box-sizing: border-box; }
+
+/* No 300ms wait for a second tap that is not coming. Applies to the
+ * whole tree rather than per-control, since every tap target here is a
+ * link, a button or a form control. */
+a, button, input, select, textarea, label, summary, [role="button"] {
+  touch-action: manipulation;
+}
 
 body {
   margin: 0;
@@ -101,6 +113,66 @@ h3 { font-size: 1.1rem; }
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
 .nums  { font-variant-numeric: tabular-nums; }
+
+/* ---- Skip link -------------------------------------------------------- */
+
+/* Off-screen until focused, then pinned over the sticky top bar. Not
+ * display:none, which would take it out of the tab order and defeat the
+ * point. z-index clears .topbar's 40. */
+/* Every var() here carries a fallback. An app that sets its own :root -- and
+ * a partly-migrated one may define --violet but not the spacing scale -- would
+ * otherwise drop `left`, `padding` and `border-radius` as invalid, leaving the
+ * link unpositioned and unreadable. A skip link that renders wrong is worse
+ * than one that is missing, because nothing reports it. */
+.skip-link {
+  position: absolute;
+  left: var(--s3, 12px);
+  top: -100%;
+  z-index: 50;
+  padding: var(--s2, 8px) var(--s4, 16px);
+  background: var(--violet, #8b5cf6);
+  color: #fff;
+  border-radius: 0 0 var(--radius-sm, 8px) var(--radius-sm, 8px);
+  font-family: var(--font-head, sans-serif);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.skip-link:focus { top: 0; }
+
+/* The skip target takes focus so the next Tab continues from the content. It
+ * is not an interactive control, so it gets no ring of its own.
+ *
+ * Scoped to the id rather than the element: `main:focus` would also match an
+ * app's own <main>, which may be a styled card rather than this layout's
+ * container. */
+#main:focus { outline: none; }
+
+/* The top bar is sticky, so the browser's jump to #main puts the content
+ * directly underneath it -- the skip link appears to do nothing, or worse,
+ * lands the reader on a heading hidden behind the bar. scroll-padding on the
+ * scrolling element is what reserves the bar's height for every in-page jump,
+ * this one included. */
+html { scroll-padding-top: 4.5rem; }
+
+/* ---- Focus ------------------------------------------------------------ */
+
+/* Inputs have their own ring below. This is everything else: buttons, links,
+ * and anything given a tabindex. Without it a keyboard reader can move focus
+ * through the top bar, the filter chips and a grid of cards with nothing on
+ * screen indicating where they are. */
+/* No border-radius here. An outline already follows whatever radius the
+ * element has, and setting one would reshape the element's own box while
+ * focused -- a consuming app's 999px pill would flatten to 8px on focus, and
+ * a type selector outranks the bare class the app styled it with, so loading
+ * their sheet after this one would not win it back. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--violet-bright, #a78bfa);
+  outline-offset: 2px;
+}
 
 /* ---- Shell ------------------------------------------------------------ */
 
