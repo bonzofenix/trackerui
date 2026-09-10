@@ -117,13 +117,39 @@ h3 { font-size: 1.1rem; }
   border-bottom: 1px solid var(--border);
 }
 
+/* flex: none so the brand is not the thing that gives when the bar is tight;
+ * the nav beside it scrolls instead. */
 .brand { font-family: var(--font-head); font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.02em; font-size: 1.05rem; }
+  text-transform: uppercase; letter-spacing: 0.02em; font-size: 1.05rem;
+  flex: none; }
 .brand .accent { color: var(--violet-bright); }
 
+/* min-width: 0 is what makes overflow-x: auto below actually do anything.
+ * A flex item defaults to min-width: auto, which refuses to shrink below its
+ * content -- so a nav of nowrap tabs held its full intrinsic width and pushed
+ * the topbar wider than the viewport instead of scrolling inside it. With six
+ * tabs against a 390px phone that put the last of them off the edge of the
+ * screen with no way to reach them.
+ *
+ * Overriding it lets the item shrink past its content and hand the overflow to
+ * its own scroller, which is what the rest of this rule was already asking
+ * for. */
 .topbar nav { display: flex; gap: var(--s2); flex-wrap: nowrap;
-  overflow-x: auto; scrollbar-width: none; }
+  min-width: 0; overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch; }
 .topbar nav::-webkit-scrollbar { display: none; }
+
+/* The scrollbar is hidden, so something else has to say there is more to the
+ * row. The mask fades the trailing edge: a half-cut tab reads as "keep going"
+ * rather than as the last one. Only where the tabs can actually outrun the
+ * bar -- on a wide screen it would dim a tab for no reason. */
+@media (max-width: 640px) {
+  .topbar nav {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  }
+}
+
 .topbar nav a {
   color: var(--muted);
   font-weight: 600;
@@ -329,4 +355,11 @@ tbody tr:last-child td { border-bottom: none; }
   .container { padding: var(--s4) var(--s3) 80px; }
   h1 { font-size: 1.6rem; }
   .topbar { gap: var(--s3); padding: var(--s2) var(--s3); }
+  .brand { font-size: 0.95rem; }
+  /* The tabs are the primary navigation and each one is a tap target; the
+   * 44px floor the buttons use is more than a text link needs, but the 24px
+   * they had is less. */
+  .topbar nav { gap: var(--s1); }
+  .topbar nav a { padding: var(--s2); min-height: 40px;
+    display: inline-flex; align-items: center; }
 }
