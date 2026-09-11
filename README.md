@@ -104,9 +104,25 @@ desktop width. Reading the diff does not catch it. Checking the merge result
 does:
 
 ```sh
-git merge-tree $(git merge-base origin/main <branch>) origin/main <branch> \
-  | grep -c 'min-width: 0'     # 0 means the rule is gone after merging
+# Read the rule out of the MERGED FILE, not out of a diff.
+tree=$(git merge-tree --write-tree origin/main <branch> | head -1 | tr -d '\r\n')
+blob=$(git ls-tree "$tree" static/ui.css | awk '{print $3}')
+git cat-file -p "$blob" | grep -c 'min-width: 0'                 # 0 = gone
 ```
+
+Grepping `git merge-tree`'s own output instead is this same mistake one level
+down, and it sat in this section until someone ran it: that output is the
+changed hunks, so a rule neither side touched never appears in it and reads as
+missing when it is fine. It answers "did this hunk change", not "is the rule
+still there". Only the merged file answers the second, and the second is the
+question.
+
+Two details the three lines above exist for. `--write-tree` prints a trailing
+carriage return, which silently corrupts the SHA when it is interpolated into a
+path. And `<tree-sha>:<path>` does not resolve against a bare tree the way it
+does against a commit, so the blob is looked up with `ls-tree` rather than
+addressed through the tree. Both fail by returning a clean `0` — the same
+answer as a genuinely missing rule.
 
 Rebase any branch older than the last merge here before merging it, and check
 the result rather than the diff.
