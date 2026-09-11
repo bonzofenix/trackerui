@@ -65,6 +65,32 @@ set would let the last file win and every page would render identically.
 
 Badges follow one formula: solid text colour over the same hue at ~13% alpha.
 
+## Releasing, and what a stale branch costs
+
+Every app pins a version, so a change here reaches production only when each
+app bumps its pin. Two things follow from that.
+
+A branch cut before someone else's change landed will **revert it on merge,
+with no conflict to warn anyone.** Git sees the older branch as deleting the
+lines it never had, the diff shows them as ordinary removals, and GitHub
+reports the PR mergeable. This is not hypothetical: #1 was branched before #2
+and would have silently removed `min-width: 0` from `.topbar nav`, putting the
+tabs back off the edge of the screen on every phone — a regression invisible at
+desktop width. Reading the diff does not catch it. Checking the merge result
+does:
+
+```sh
+git merge-tree $(git merge-base origin/main <branch>) origin/main <branch> \
+  | grep -c 'min-width: 0'     # 0 means the rule is gone after merging
+```
+
+Rebase any branch older than the last merge here before merging it, and check
+the result rather than the diff.
+
+The same hazard arrives downstream one step later: bumping an app's pin to a
+version built from a main that lost a rule ships that loss to production, where
+it looks like the app's own regression. Bump from a main you have checked.
+
 ## JavaScript
 
 None is vendored. gymtracker needs htmx, foodtracker needs Chart.js,
