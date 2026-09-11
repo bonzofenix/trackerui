@@ -134,6 +134,72 @@ func TestEmptyTemplateDirIsAnError(t *testing.T) {
 	}
 }
 
+// The skip link is the first focusable thing on the page, and it has to come
+// before the top bar in DOM order to be reachable first. Ordering is the whole
+// feature: a skip link rendered after the nav it skips is worse than none,
+// because it looks like the problem is solved.
+func TestSkipLinkComesBeforeTheTopBar(t *testing.T) {
+	out := render(t, "home", pageData{Layout: ui.Layout{
+		Nav: []ui.NavItem{{Label: "Tags", Href: "/tags"}},
+	}})
+
+	skip := strings.Index(out, `<a class="skip-link" href="#main">`)
+	if skip < 0 {
+		t.Fatal("no skip link")
+	}
+	bar := strings.Index(out, `<header class="topbar">`)
+	if bar < 0 {
+		t.Fatal("no top bar")
+	}
+	if skip > bar {
+		t.Error("the skip link renders after the bar it is meant to skip")
+	}
+
+	// It has to land somewhere. An href with no target scrolls nowhere and
+	// silently does nothing.
+	if !strings.Contains(out, `<main id="main"`) {
+		t.Error(`skip link targets #main, but <main> carries no id="main"`)
+	}
+	// Without tabindex the target takes the reading position but not focus, so
+	// the next Tab starts again from the top of the document.
+	if !strings.Contains(out, `tabindex="-1"`) {
+		t.Error("<main> is not focusable, so the skip link moves reading position only")
+	}
+
+	// The two halves have to agree. Asserted separately above, renaming one
+	// leaves a link that scrolls nowhere and still passes.
+	href := out[skip+len(`<a class="skip-link" href="#`):]
+	href = href[:strings.Index(href, `"`)]
+	if !strings.Contains(out, `<main id="`+href+`"`) {
+		t.Errorf("skip link points at #%s, which no element carries as its id", href)
+	}
+}
+
+// The layout must contribute exactly one id="main". A consuming app that
+// declares its own would give the document two, and the fragment would resolve
+// to whichever came first -- silently landing the reader inside the content
+// rather than at the top of it. This module cannot prevent that, so what is
+// pinned here is that the layout itself contributes one and only one; the
+// duplicate case is a documented constraint on consumers.
+func TestLayoutContributesExactlyOneSkipTarget(t *testing.T) {
+	out := render(t, "home", pageData{})
+	if n := strings.Count(out, `id="main"`); n != 1 {
+		t.Errorf(`layout renders id="main" %d times, want exactly 1`, n)
+	}
+}
+
+// A fixed dark palette that does not declare itself gets light scrollbars and
+// light <select> drop-downs drawn over it by the browser.
+func TestLayoutDeclaresTheDarkColorScheme(t *testing.T) {
+	out := render(t, "home", pageData{})
+	if !strings.Contains(out, `<meta name="color-scheme" content="dark">`) {
+		t.Error("no color-scheme declaration")
+	}
+	if !strings.Contains(out, `<meta name="theme-color" content="#0b0b12">`) {
+		t.Error("no theme-color, so mobile browser chrome will not match --bg")
+	}
+}
+
 func TestStylesheetShipsTheTokens(t *testing.T) {
 	css, err := ui.CSS()
 	if err != nil {
@@ -143,6 +209,19 @@ func TestStylesheetShipsTheTokens(t *testing.T) {
 		"--violet: #8b5cf6", "--bg: #0b0b12", "--surface: #14141f",
 		"--border: #2a2a3d", "--text: #f1f1f7", "--muted: #9a9ab5",
 		"Barlow Condensed", "prefers-reduced-motion",
+		// Both the <meta> and the property are kept. They set the same
+		// value, so this is not belt-and-braces: the <meta> applies before
+		// the stylesheet has loaded, which is what stops a flash of light
+		// browser chrome on a slow connection.
+		"color-scheme: dark",
+		// Without this the sticky top bar covers whatever the skip link
+		// jumped to, which looks exactly like the link doing nothing.
+		"scroll-padding-top",
+		// Presence guards, not behaviour: a stylesheet cannot be rendered
+		// here, so these only catch a rule deleted by accident.
+		".skip-link",
+		"button:focus-visible",
+		"touch-action: manipulation",
 	} {
 		if !strings.Contains(string(css), want) {
 			t.Errorf("stylesheet is missing %q", want)
