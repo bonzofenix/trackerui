@@ -9,8 +9,11 @@
      controls -- from the dark set. Without it those render light on a
      dark page, which is most visible on Windows. */}}
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0b0b12">
-<title>{{with .Layout.Title}}{{.}} · {{end}}{{.Layout.Brand.Prefix}}{{.Layout.Brand.Suffix}}</title>
+<meta name="theme-color" content="{{themeColor}}">
+{{with .Layout.Icon}}<link rel="icon" type="image/png" href="{{.}}">
+<link rel="apple-touch-icon" href="{{.}}">
+<link rel="manifest" href="{{manifest}}">
+{{end}}<title>{{with .Layout.Title}}{{.}} · {{end}}{{.Layout.Brand.Prefix}}{{.Layout.Brand.Suffix}}</title>
 {{fontLink}}
 <link rel="stylesheet" href="{{stylesheet}}">
 {{range .Layout.Styles}}<link rel="stylesheet" href="{{.}}">{{end}}

@@ -85,6 +85,8 @@ func (r *Renderer) Pages() []string {
 var builtins = template.FuncMap{
 	"fontLink":   func() template.HTML { return template.HTML(FontLink) },
 	"stylesheet": StylesheetHref,
+	"themeColor": func() string { return ThemeColor },
+	"manifest":   func() string { return ManifestPath },
 	"humanSize":  HumanSize,
 	"ratio":      Ratio,
 }

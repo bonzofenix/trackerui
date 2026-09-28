@@ -137,3 +137,29 @@ None is vendored. gymtracker needs htmx, foodtracker needs Chart.js,
 tangotracker needs neither — so each app embeds and serves its own and passes
 URLs via `Layout.Scripts`. Vendor rather than CDN: gymtracker already had a
 CDN miss silently break every interaction on the page.
+
+## Icons
+
+The layout links a favicon, an Apple touch icon and a web app manifest, all
+from one image each app supplies. tangotracker and phototracker show different
+icons by passing different PNGs through the same setup; neither writes icon
+markup.
+
+1. Serve a square PNG of **exactly 512×512** from the app, e.g. embedded under
+   `/static/icon.png`. The manifest declares that size, and Chrome ignores an
+   install icon whose declared size is wrong.
+2. Set `Layout.Icon` to its URL on every page.
+3. Mount the manifest at `ui.ManifestPath`:
+
+```go
+brand := ui.Brand{Prefix: "TANGO", Suffix: "TRACKER", Href: "/"}
+mux.Handle("GET "+ui.ManifestPath, ui.ManifestHandler(brand, "/static/icon.png"))
+```
+
+Do both steps 2 and 3. `Layout.Icon` without the handler links a manifest that
+404s: tabs and iOS still get the icon, but Android cannot install the app.
+Leaving `Layout.Icon` empty renders none of the three links.
+
+The manifest takes its name from the wordmark (`TANGOTRACKER`, as in
+`<title>`) and its colours from `ui.ThemeColor`, the same value as the
+`theme-color` meta and `--bg`.

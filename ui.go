@@ -26,6 +26,7 @@ package ui
 
 import (
 	"embed"
+	"encoding/json"
 	"net/http"
 	"time"
 )
@@ -73,6 +74,72 @@ type Layout struct {
 	// JS: the shared package deliberately does not vendor htmx or Chart.js,
 	// so an app that needs neither does not ship them.
 	Scripts []string
+	// Icon is the URL of a square 512x512 PNG the app serves itself. The
+	// layout links it as the favicon and the Apple touch icon, and links the
+	// manifest at ManifestPath, which the app serves with ManifestHandler.
+	// Empty renders none of the three.
+	Icon string
+}
+
+// ThemeColor is --bg, the colour browser chrome and a launched home-screen
+// app are painted with. The layout's theme-color meta and the manifest both
+// read it, so the two cannot drift apart.
+const ThemeColor = "#0b0b12"
+
+// ManifestPath is where the layout links the web app manifest. Mount
+// ManifestHandler here.
+const ManifestPath = "/manifest.webmanifest"
+
+type manifestIcon struct {
+	Src   string `json:"src"`
+	Sizes string `json:"sizes"`
+	Type  string `json:"type"`
+}
+
+type manifest struct {
+	Name            string         `json:"name"`
+	ShortName       string         `json:"short_name"`
+	StartURL        string         `json:"start_url"`
+	Display         string         `json:"display"`
+	BackgroundColor string         `json:"background_color"`
+	ThemeColor      string         `json:"theme_color"`
+	Icons           []manifestIcon `json:"icons"`
+}
+
+// Manifest returns the web app manifest for an app: its wordmark as the
+// name, the dark theme as its colours, and icon (the same 512x512 PNG URL as
+// Layout.Icon) as its only icon.
+//
+// The manifest is per app, not per page, so it is served from one URL rather
+// than embedded in the layout.
+func Manifest(brand Brand, icon string) ([]byte, error) {
+	name := brand.Prefix + brand.Suffix
+	start := brand.Href
+	if start == "" {
+		start = "/"
+	}
+	return json.Marshal(manifest{
+		Name:            name,
+		ShortName:       name,
+		StartURL:        start,
+		Display:         "standalone",
+		BackgroundColor: ThemeColor,
+		ThemeColor:      ThemeColor,
+		Icons:           []manifestIcon{{Src: icon, Sizes: "512x512", Type: "image/png"}},
+	})
+}
+
+// ManifestHandler serves Manifest(brand, icon). Mount it at ManifestPath.
+func ManifestHandler(brand Brand, icon string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := Manifest(brand, icon)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/manifest+json")
+		w.Write(body)
+	})
 }
 
 // StaticHandler serves the shared stylesheet at /static/ui.css.
