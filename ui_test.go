@@ -1,6 +1,9 @@
 package ui_test
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -197,6 +200,95 @@ func TestLayoutDeclaresTheDarkColorScheme(t *testing.T) {
 	}
 	if !strings.Contains(out, `<meta name="theme-color" content="#0b0b12">`) {
 		t.Error("no theme-color, so mobile browser chrome will not match --bg")
+	}
+	// The meta and the manifest render ThemeColor, which is a hand-kept copy
+	// of --bg. Pin the copy to the stylesheet itself, not to a literal.
+	css, err := ui.CSS()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(css), "--bg: "+ui.ThemeColor) {
+		t.Errorf("ThemeColor %s is not --bg in the stylesheet", ui.ThemeColor)
+	}
+}
+
+// Without these three links iOS puts a page screenshot on the home screen,
+// Chrome cannot install the app, and tabs fall back to /favicon.ico.
+func TestIconLinksRenderOnlyWhenIconSet(t *testing.T) {
+	out := render(t, "home", pageData{Layout: ui.Layout{Icon: "/static/icon.png"}})
+	for _, want := range []string{
+		`<link rel="icon" type="image/png" href="/static/icon.png">`,
+		`<link rel="apple-touch-icon" href="/static/icon.png">`,
+		`<link rel="manifest" href="` + ui.ManifestPath + `">`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %s", want)
+		}
+	}
+
+	// An app that has not opted in must not link a manifest it does not
+	// serve, or every page load logs a 404.
+	bare := render(t, "home", pageData{})
+	for _, rel := range []string{`rel="icon"`, `rel="apple-touch-icon"`, `rel="manifest"`} {
+		if strings.Contains(bare, rel) {
+			t.Errorf("empty Icon still rendered %s", rel)
+		}
+	}
+}
+
+func TestManifestDescribesTheApp(t *testing.T) {
+	h := ui.ManifestHandler(ui.Brand{Prefix: "TANGO", Suffix: "TRACKER", Href: "/"}, "/static/icon.png")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, ui.ManifestPath, nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/manifest+json" {
+		t.Errorf("Content-Type = %q", ct)
+	}
+
+	// Decode into maps, not tagged structs: encoding/json matches keys
+	// case-insensitively, but browsers do not, so "Src" would pass a struct.
+	var m map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &m); err != nil {
+		t.Fatalf("manifest is not JSON: %v", err)
+	}
+	// The name matches the <title> wordmark, so the home-screen label and
+	// the tab read the same.
+	for key, want := range map[string]string{
+		"name":             "TANGOTRACKER",
+		"short_name":       "TANGOTRACKER",
+		"start_url":        "/",
+		"display":          "standalone",
+		"theme_color":      ui.ThemeColor,
+		"background_color": ui.ThemeColor,
+	} {
+		if got := m[key]; got != want {
+			t.Errorf("%s = %v, want %q", key, got, want)
+		}
+	}
+
+	icons, _ := m["icons"].([]any)
+	if len(icons) != 1 {
+		t.Fatalf("icons = %v, want one", m["icons"])
+	}
+	icon, _ := icons[0].(map[string]any)
+	for key, want := range map[string]string{
+		"src": "/static/icon.png", "sizes": "512x512", "type": "image/png",
+	} {
+		if got := icon[key]; got != want {
+			t.Errorf("icons[0].%s = %v, want %q", key, got, want)
+		}
+	}
+}
+
+// Brand.Href is optional in the layout (the wordmark falls back to "/"), so
+// the manifest must not emit an empty start_url.
+func TestManifestStartURLDefaultsToRoot(t *testing.T) {
+	body := ui.Manifest(ui.Brand{Prefix: "PHOTO", Suffix: "TRACKER"}, "/i.png")
+	if !strings.Contains(string(body), `"start_url":"/"`) {
+		t.Errorf("start_url not defaulted: %s", body)
 	}
 }
 

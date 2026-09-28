@@ -137,3 +137,43 @@ None is vendored. gymtracker needs htmx, foodtracker needs Chart.js,
 tangotracker needs neither — so each app embeds and serves its own and passes
 URLs via `Layout.Scripts`. Vendor rather than CDN: gymtracker already had a
 CDN miss silently break every interaction on the page.
+
+## Icons
+
+The layout links a favicon, an Apple touch icon and a web app manifest, all
+from one image each app supplies. tangotracker and phototracker can show
+different icons by passing different PNGs through the same setup; neither has
+to write icon markup.
+
+1. Serve a square PNG of **exactly 512×512** from the app, at a root-relative
+   URL such as `/static/icon.png`. The manifest declares `512x512`; Chrome
+   rejects an install icon that is not square or is under 144px, and DevTools
+   flags one whose real size differs from the declared one.
+2. Set `Layout.Icon` to that URL on every page.
+3. Mount the manifest at `ui.ManifestPath`, passing the same URL.
+
+Serve the icon and the manifest on the **public** mux, next to
+`/static/ui.css` and `/login`. Browsers fetch both before anyone signs in, and
+fetch the manifest without cookies, so behind a sign-in gate install breaks
+with no error anywhere.
+
+An app that serves its own `/static/` cannot also mount `ui.StaticHandler()`
+there: registering one pattern twice panics. Mount the shared sheet on its
+exact path instead:
+
+```go
+brand := ui.Brand{Prefix: "TANGO", Suffix: "TRACKER", Href: "/"}
+
+public.Handle("GET /static/ui.css", ui.StaticHandler())
+public.Handle("GET /static/", appStatic) // serves /static/icon.png
+public.Handle("GET "+ui.ManifestPath, ui.ManifestHandler(brand, "/static/icon.png"))
+```
+
+Do steps 2 and 3 together. `Layout.Icon` without the handler links a manifest
+that 404s: tabs and iOS still get the icon, but Chrome on Android and desktop
+cannot install the app, and Add to Home screen makes a plain shortcut.
+Leaving `Layout.Icon` empty renders none of the three links.
+
+The manifest takes its name from the wordmark (`TANGOTRACKER`, as in
+`<title>`) and its colours from `ui.ThemeColor`, the same value as the
+`theme-color` meta and `--bg`.
