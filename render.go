@@ -83,12 +83,12 @@ func (r *Renderer) Pages() []string {
 }
 
 var builtins = template.FuncMap{
-	"fontLink":   func() template.HTML { return template.HTML(FontLink) },
-	"stylesheet": StylesheetHref,
-	"themeColor": func() string { return ThemeColor },
-	"manifest":   func() string { return ManifestPath },
-	"humanSize":  HumanSize,
-	"ratio":      Ratio,
+	"fontLink":     func() template.HTML { return template.HTML(FontLink) },
+	"stylesheet":   StylesheetHref,
+	"themeColor":   func() string { return ThemeColor },
+	"manifestPath": func() string { return ManifestPath },
+	"humanSize":    HumanSize,
+	"ratio":        Ratio,
 }
 
 // HumanSize formats a byte count in SI units, as file sizes are quoted on

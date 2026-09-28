@@ -201,15 +201,19 @@ func TestLayoutDeclaresTheDarkColorScheme(t *testing.T) {
 	if !strings.Contains(out, `<meta name="theme-color" content="#0b0b12">`) {
 		t.Error("no theme-color, so mobile browser chrome will not match --bg")
 	}
-	// The manifest reads the same constant; if it moved off --bg the meta
-	// above would catch it here rather than in a home-screen splash.
-	if ui.ThemeColor != "#0b0b12" {
-		t.Errorf("ThemeColor = %q, want --bg #0b0b12", ui.ThemeColor)
+	// The meta and the manifest render ThemeColor, which is a hand-kept copy
+	// of --bg. Pin the copy to the stylesheet itself, not to a literal.
+	css, err := ui.CSS()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(css), "--bg: "+ui.ThemeColor) {
+		t.Errorf("ThemeColor %s is not --bg in the stylesheet", ui.ThemeColor)
 	}
 }
 
-// Without these three links a home-screen shortcut falls back to a page
-// screenshot and a tab to the browser's generic globe.
+// Without these three links iOS puts a page screenshot on the home screen,
+// Chrome cannot install the app, and tabs fall back to /favicon.ico.
 func TestIconLinksRenderOnlyWhenIconSet(t *testing.T) {
 	out := render(t, "home", pageData{Layout: ui.Layout{Icon: "/static/icon.png"}})
 	for _, want := range []string{
@@ -244,46 +248,45 @@ func TestManifestDescribesTheApp(t *testing.T) {
 		t.Errorf("Content-Type = %q", ct)
 	}
 
-	var m struct {
-		Name            string `json:"name"`
-		ShortName       string `json:"short_name"`
-		StartURL        string `json:"start_url"`
-		Display         string `json:"display"`
-		BackgroundColor string `json:"background_color"`
-		ThemeColor      string `json:"theme_color"`
-		Icons           []struct {
-			Src, Sizes, Type string
-		} `json:"icons"`
-	}
+	// Decode into maps, not tagged structs: encoding/json matches keys
+	// case-insensitively, but browsers do not, so "Src" would pass a struct.
+	var m map[string]any
 	if err := json.Unmarshal(rec.Body.Bytes(), &m); err != nil {
 		t.Fatalf("manifest is not JSON: %v", err)
 	}
 	// The name matches the <title> wordmark, so the home-screen label and
 	// the tab read the same.
-	if m.Name != "TANGOTRACKER" || m.ShortName != "TANGOTRACKER" {
-		t.Errorf("name = %q, short_name = %q", m.Name, m.ShortName)
+	for key, want := range map[string]string{
+		"name":             "TANGOTRACKER",
+		"short_name":       "TANGOTRACKER",
+		"start_url":        "/",
+		"display":          "standalone",
+		"theme_color":      ui.ThemeColor,
+		"background_color": ui.ThemeColor,
+	} {
+		if got := m[key]; got != want {
+			t.Errorf("%s = %v, want %q", key, got, want)
+		}
 	}
-	if m.StartURL != "/" || m.Display != "standalone" {
-		t.Errorf("start_url = %q, display = %q", m.StartURL, m.Display)
+
+	icons, _ := m["icons"].([]any)
+	if len(icons) != 1 {
+		t.Fatalf("icons = %v, want one", m["icons"])
 	}
-	if m.ThemeColor != ui.ThemeColor || m.BackgroundColor != ui.ThemeColor {
-		t.Errorf("colours %q/%q, want %q", m.ThemeColor, m.BackgroundColor, ui.ThemeColor)
-	}
-	if len(m.Icons) != 1 {
-		t.Fatalf("got %d icons, want 1", len(m.Icons))
-	}
-	if i := m.Icons[0]; i.Src != "/static/icon.png" || i.Sizes != "512x512" || i.Type != "image/png" {
-		t.Errorf("icon = %+v", i)
+	icon, _ := icons[0].(map[string]any)
+	for key, want := range map[string]string{
+		"src": "/static/icon.png", "sizes": "512x512", "type": "image/png",
+	} {
+		if got := icon[key]; got != want {
+			t.Errorf("icons[0].%s = %v, want %q", key, got, want)
+		}
 	}
 }
 
 // Brand.Href is optional in the layout (the wordmark falls back to "/"), so
 // the manifest must not emit an empty start_url.
 func TestManifestStartURLDefaultsToRoot(t *testing.T) {
-	body, err := ui.Manifest(ui.Brand{Prefix: "PHOTO", Suffix: "TRACKER"}, "/i.png")
-	if err != nil {
-		t.Fatal(err)
-	}
+	body := ui.Manifest(ui.Brand{Prefix: "PHOTO", Suffix: "TRACKER"}, "/i.png")
 	if !strings.Contains(string(body), `"start_url":"/"`) {
 		t.Errorf("start_url not defaulted: %s", body)
 	}

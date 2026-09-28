@@ -74,16 +74,17 @@ type Layout struct {
 	// JS: the shared package deliberately does not vendor htmx or Chart.js,
 	// so an app that needs neither does not ship them.
 	Scripts []string
-	// Icon is the URL of a square 512x512 PNG the app serves itself. The
-	// layout links it as the favicon and the Apple touch icon, and links the
-	// manifest at ManifestPath, which the app serves with ManifestHandler.
-	// Empty renders none of the three.
+	// Icon is the root-relative URL of a square 512x512 PNG the app serves
+	// itself. The layout links it as the favicon and the Apple touch icon,
+	// and links the manifest at ManifestPath, which the app serves with
+	// ManifestHandler. Empty renders none of the three.
 	Icon string
 }
 
-// ThemeColor is --bg, the colour browser chrome and a launched home-screen
-// app are painted with. The layout's theme-color meta and the manifest both
-// read it, so the two cannot drift apart.
+// ThemeColor is the colour browser chrome and a launched home-screen app are
+// painted with. The layout's theme-color meta and the manifest both read it,
+// so those two cannot drift apart; it is a copy of --bg in static/ui.css, and
+// the tests pin the two together.
 const ThemeColor = "#0b0b12"
 
 // ManifestPath is where the layout links the web app manifest. Mount
@@ -107,18 +108,19 @@ type manifest struct {
 }
 
 // Manifest returns the web app manifest for an app: its wordmark as the
-// name, the dark theme as its colours, and icon (the same 512x512 PNG URL as
-// Layout.Icon) as its only icon.
+// name, the dark theme as its colours, and icon as its only icon. Pass the
+// same root-relative URL as Layout.Icon: a relative one would resolve against
+// the manifest's URL here but against the page's in the layout.
 //
 // The manifest is per app, not per page, so it is served from one URL rather
 // than embedded in the layout.
-func Manifest(brand Brand, icon string) ([]byte, error) {
+func Manifest(brand Brand, icon string) []byte {
 	name := brand.Prefix + brand.Suffix
 	start := brand.Href
 	if start == "" {
 		start = "/"
 	}
-	return json.Marshal(manifest{
+	b, err := json.Marshal(manifest{
 		Name:            name,
 		ShortName:       name,
 		StartURL:        start,
@@ -127,16 +129,19 @@ func Manifest(brand Brand, icon string) ([]byte, error) {
 		ThemeColor:      ThemeColor,
 		Icons:           []manifestIcon{{Src: icon, Sizes: "512x512", Type: "image/png"}},
 	})
+	if err != nil {
+		// Every field is a string, so Marshal cannot fail.
+		panic(err)
+	}
+	return b
 }
 
-// ManifestHandler serves Manifest(brand, icon). Mount it at ManifestPath.
+// ManifestHandler serves Manifest(brand, icon). Mount it at ManifestPath on
+// the public mux, outside any sign-in gate: browsers fetch the manifest
+// without cookies, so behind a login it fails and install breaks silently.
 func ManifestHandler(brand Brand, icon string) http.Handler {
+	body := Manifest(brand, icon)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := Manifest(brand, icon)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 		w.Header().Set("Content-Type", "application/manifest+json")
 		w.Write(body)
 	})
