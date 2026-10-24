@@ -22,7 +22,7 @@ as one family.
 | `--bg` | `#0b0b12` | ground |
 | `--surface` / `--surface-2` / `--surface-3` | `#14141f` / `#1c1c2b` / `#24243a` | elevation |
 | `--border` | `#2a2a3d` | |
-| `--text` / `--muted` / `--faint` | `#f1f1f7` / `#9a9ab5` / `#6c6c86` | text ramp |
+| `--text` / `--muted` / `--faint` | `#f1f1f7` / `#9a9ab5` / `#8a8aa6` | text ramp |
 | `--ok` / `--warn` / `--danger` | `#22c55e` / `#f59e0b` / `#ef4444` | status, never themed |
 
 Type is Barlow Condensed (headings, 700, uppercase) over Barlow (body).
