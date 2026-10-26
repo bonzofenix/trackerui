@@ -2,8 +2,11 @@ package ui_test
 
 import (
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -363,5 +366,134 @@ func TestStylesLoadAfterTheSharedSheet(t *testing.T) {
 	}
 	if shared > own {
 		t.Error("app stylesheet must load after the shared one")
+	}
+}
+
+// ---- Stylesheet accessibility guards -------------------------------------
+
+func cssText(t *testing.T) string {
+	t.Helper()
+	b, err := ui.CSS()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+func token(t *testing.T, css, name string) string {
+	t.Helper()
+	m := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(name) + `:\s*(#[0-9a-fA-F]{6})`).FindStringSubmatch(css)
+	if m == nil {
+		t.Fatalf("token %s not found as a hex value", name)
+	}
+	return m[1]
+}
+
+func luminance(t *testing.T, hex string) float64 {
+	t.Helper()
+	var l float64
+	for i, w := range []float64{0.2126, 0.7152, 0.0722} {
+		v, err := strconv.ParseUint(hex[1+2*i:3+2*i], 16, 8)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c := float64(v) / 255
+		if c <= 0.03928 {
+			c /= 12.92
+		} else {
+			c = math.Pow((c+0.055)/1.055, 2.4)
+		}
+		l += w * c
+	}
+	return l
+}
+
+func contrast(t *testing.T, a, b string) float64 {
+	la, lb := luminance(t, a), luminance(t, b)
+	if la < lb {
+		la, lb = lb, la
+	}
+	return (la + 0.05) / (lb + 0.05)
+}
+
+func TestTextTokensMeetAA(t *testing.T) {
+	css := cssText(t)
+	faint := token(t, css, "--faint")
+	for _, bg := range []string{"--bg", "--surface", "--surface-2"} {
+		if r := contrast(t, faint, token(t, css, bg)); r < 4.5 {
+			t.Errorf("--faint on %s = %.2f:1, want >= 4.5", bg, r)
+		}
+	}
+	m := regexp.MustCompile(`(?s)\n\.btn \{.*?\n\}`).FindString(css)
+	bm := regexp.MustCompile(`background:\s*var\((--[a-z-]+)\)`).FindStringSubmatch(m)
+	if bm == nil {
+		t.Fatal(".btn background is not a token")
+	}
+	if r := contrast(t, "#ffffff", token(t, css, bm[1])); r < 4.5 {
+		t.Errorf("white on .btn (%s) = %.2f:1, want >= 4.5", bm[1], r)
+	}
+	if r := contrast(t, "#ffffff", token(t, css, "--violet-darker")); r < 4.5 {
+		t.Errorf("white on .btn:hover = %.2f:1, want >= 4.5", r)
+	}
+}
+
+// block returns the body of the first top-level @media or rule whose header
+// contains head.
+func block(t *testing.T, css, head string) string {
+	t.Helper()
+	i := strings.Index(css, head)
+	if i < 0 {
+		t.Fatalf("no %q block", head)
+	}
+	depth, start := 0, strings.Index(css[i:], "{")+i
+	for j := start; j < len(css); j++ {
+		switch css[j] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return css[start+1 : j]
+			}
+		}
+	}
+	t.Fatalf("unterminated %q block", head)
+	return ""
+}
+
+func TestCoarsePointerTargetsAre44px(t *testing.T) {
+	css := cssText(t)
+	coarse := block(t, css, "@media (pointer: coarse)")
+	for _, sel := range []string{".btn-sm", ".btn-del", "a.tag", ".chip", ".topbar nav a"} {
+		re := regexp.MustCompile(`(?m)(^|[\s,])` + regexp.QuoteMeta(sel) + `\s*(,[^{]*)?\{[^}]*min-height:\s*44px`)
+		if !re.MatchString(coarse) {
+			t.Errorf("%s has no min-height:44px under (pointer: coarse)", sel)
+		}
+	}
+	if !strings.Contains(css, "padding: var(--s2); min-height: 44px") {
+		t.Error("narrow-screen nav links are not 44px")
+	}
+	// The coarse block must come last so it outranks the base rules.
+	if strings.Index(css, "@media (pointer: coarse)") < strings.LastIndex(css, ".btn-sm {") {
+		t.Error("coarse-pointer block precedes .btn-sm base rule and would lose")
+	}
+}
+
+func TestScriptFocusedElementsGetARing(t *testing.T) {
+	css := cssText(t)
+	re := regexp.MustCompile(`(?s)\[tabindex="-1"\]:focus-visible\s*\{[^}]*outline:\s*2px solid`)
+	if !re.MatchString(css) {
+		t.Error(`[tabindex="-1"]:focus-visible has no outline`)
+	}
+}
+
+func TestChipComponent(t *testing.T) {
+	css := cssText(t)
+	for _, want := range []string{".chip {", ".chip-count", `.chip[aria-current="page"]`,
+		`.chip[aria-pressed="true"]`, "text-overflow: ellipsis", "white-space: nowrap",
+		`input[type="checkbox"]`, "::placeholder"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("stylesheet is missing %q", want)
+		}
 	}
 }

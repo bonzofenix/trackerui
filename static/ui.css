@@ -22,6 +22,7 @@
   --violet: #8b5cf6;
   --violet-bright: #a78bfa;
   --violet-dark: #7c3aed;
+  --violet-darker: #6d28d9;
   --violet-soft: rgba(139, 92, 246, 0.14);
 
   /* Semantic status. Fixed, never themed: green-is-good reads the same in
@@ -43,7 +44,7 @@
   /* Text ramp: primary, secondary, tertiary. */
   --text: #f1f1f7;
   --muted: #9a9ab5;
-  --faint: #6c6c86;
+  --faint: #8a8aa6;   /* >=4.5:1 on bg, surface, surface-2 */
 
   /* Dense dashboard spacing scale (8/10). */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -169,7 +170,9 @@ html { scroll-padding-top: 4.5rem; }
 a:focus-visible,
 button:focus-visible,
 summary:focus-visible,
-[tabindex]:not([tabindex="-1"]):focus-visible {
+[tabindex]:not([tabindex="-1"]):focus-visible,
+/* tabindex=-1 is what a script-driven roving cursor focuses. */
+[tabindex="-1"]:focus-visible {
   outline: 2px solid var(--violet-bright, #a78bfa);
   outline-offset: 2px;
 }
@@ -338,9 +341,9 @@ a.tag:hover { color: var(--violet-bright); background: var(--violet-soft); }
   gap: var(--s2);
   padding: var(--s3) var(--s5);
   min-height: 44px;                  /* touch target */
-  background: var(--violet);
+  background: var(--violet-dark);   /* white on #8b5cf6 is only 4.23:1 */
   color: #fff;
-  border: 1px solid var(--violet);
+  border: 1px solid var(--violet-dark);
   border-radius: var(--radius-sm);
   font-family: var(--font-head);
   font-weight: 600;
@@ -350,27 +353,56 @@ a.tag:hover { color: var(--violet-bright); background: var(--violet-soft); }
   cursor: pointer;
   transition: background 160ms ease, transform 120ms ease, box-shadow 160ms ease;
 }
-.btn:hover { background: var(--violet-dark);
+.btn:hover { background: var(--violet-darker); border-color: var(--violet-darker);
   box-shadow: 0 6px 20px rgba(139, 92, 246, 0.35); }
 .btn:active { transform: translateY(1px); }
 
 .btn-ghost { background: transparent; color: var(--violet-bright);
   border-color: var(--border); box-shadow: none; }
-.btn-ghost:hover { background: var(--surface-2); box-shadow: none; }
+.btn-ghost:hover { background: var(--surface-2); border-color: var(--border); box-shadow: none; }
 
 .btn-sm { min-height: 32px; padding: var(--s1) var(--s3);
   font-size: 0.8rem; font-family: var(--font-body); text-transform: none; }
 
 .btn-del { background: transparent; border: 1px solid var(--border);
-  color: var(--faint); border-radius: var(--radius-sm); min-height: 36px;
+  color: var(--muted); border-radius: var(--radius-sm); min-height: 36px;
   padding: var(--s1) var(--s3); cursor: pointer;
   transition: color 140ms ease, border-color 140ms ease; }
 .btn-del:hover { border-color: var(--danger); color: var(--danger); }
 
+/* Shared filter chip. Selected state follows aria so it needs no extra class. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 var(--s3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--surface-3);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+.chip:hover { color: var(--violet-bright); background: var(--violet-soft); }
+.chip[aria-current="page"], .chip[aria-pressed="true"] {
+  background: var(--violet-soft);
+  color: var(--violet-bright);
+  border-color: var(--violet);
+}
+.chip-count { color: var(--faint); font-variant-numeric: tabular-nums; }
+
 /* ---- Forms ------------------------------------------------------------ */
 
 input[type="number"], input[type="text"], input[type="date"],
-input[type="search"], input[type="email"], select, textarea {
+input[type="search"], input[type="email"], input[type="password"],
+input[type="url"], input[type="tel"], select, textarea {
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text);
@@ -381,6 +413,12 @@ input[type="search"], input[type="email"], select, textarea {
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
 }
+input[type="checkbox"], input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--violet);
+}
+::placeholder { color: var(--muted); opacity: 1; }
 input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--violet);
   outline-offset: 1px;
@@ -432,6 +470,14 @@ tbody tr:last-child td { border-bottom: none; }
    * 44px floor the buttons use is more than a text link needs, but the 24px
    * they had is less. */
   .topbar nav { gap: var(--s1); }
-  .topbar nav a { padding: var(--s2); min-height: 40px;
+  .topbar nav a { padding: var(--s2); min-height: 44px;
     display: inline-flex; align-items: center; }
+}
+
+/* Touch targets: 44px on coarse pointers only, so desktop density is kept. */
+@media (pointer: coarse) {
+  .btn-sm, .btn-del { min-height: 44px; min-width: 44px; }
+  a.tag { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--s3); }
+  .chip { min-height: 44px; }
+  .topbar nav a { min-height: 44px; display: inline-flex; align-items: center; }
 }
